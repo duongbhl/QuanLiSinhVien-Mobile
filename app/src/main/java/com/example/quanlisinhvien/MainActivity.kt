@@ -1,65 +1,70 @@
 package com.example.quanlisinhvien
 
+import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import kotlin.jvm.java
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var edtMSSV: EditText
-    private lateinit var edtHoTen: EditText
-    private lateinit var btnAdd: Button
-    private lateinit var btnUpdate: Button
-    private lateinit var lvSinhVien: ListView
-
-    private var arrSV = ArrayList<SinhVien>()
+    private lateinit var listView: ListView
     private lateinit var adapter: SinhVienAdapter
-    private var selectedIndex = -1   // vị trí phần tử được chọn
+    private var list = ArrayList<SinhVien>()
+
+    private val ADD_STUDENT = 100
+    private val EDIT_STUDENT = 200
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        edtMSSV = findViewById(R.id.edtMSSV)
-        edtHoTen = findViewById(R.id.edtHoTen)
-        btnAdd = findViewById(R.id.btnAdd)
-        btnUpdate = findViewById(R.id.btnUpdate)
-        lvSinhVien = findViewById(R.id.lvSinhVien)
+        listView = findViewById(R.id.lvStudents)
 
-        adapter = SinhVienAdapter(this, arrSV)
-        lvSinhVien.adapter = adapter
+        adapter = SinhVienAdapter(this, list)
+        listView.adapter = adapter
 
-        btnAdd.setOnClickListener {
-            val mssv = edtMSSV.text.toString().trim()
-            val hoten = edtHoTen.text.toString().trim()
-
-            if (mssv.isNotEmpty() && hoten.isNotEmpty()) {
-                arrSV.add(SinhVien(mssv, hoten))
-                adapter.notifyDataSetChanged()
-
-                edtMSSV.text.clear()
-                edtHoTen.text.clear()
-            }
+        listView.setOnItemClickListener { _, _, position, _ ->
+            val intent = Intent(this, StudentDetailActivity::class.java)
+            intent.putExtra("student", list[position])
+            intent.putExtra("index", position)
+            startActivityForResult(intent, EDIT_STUDENT)
         }
+    }
 
-        lvSinhVien.setOnItemClickListener { _, _, position, _ ->
-            selectedIndex = position
-            val sv = arrSV[position]
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
 
-            edtMSSV.setText(sv.mssv)
-            edtHoTen.setText(sv.hoten)
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.menuAdd) {
+            val intent = Intent(this, AddStudentActivity::class.java)
+            startActivityForResult(intent, ADD_STUDENT)
         }
+        return true
+    }
 
-        btnUpdate.setOnClickListener {
-            if (selectedIndex != -1) {
-                arrSV[selectedIndex].mssv = edtMSSV.text.toString()
-                arrSV[selectedIndex].hoten = edtHoTen.text.toString()
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
 
-                adapter.notifyDataSetChanged()
-                selectedIndex = -1
+        if (resultCode == RESULT_OK && data != null) {
+            when (requestCode) {
 
-                edtMSSV.text.clear()
-                edtHoTen.text.clear()
+                ADD_STUDENT -> {
+                    val newStudent = data.getSerializableExtra("newStudent") as SinhVien
+                    list.add(newStudent)
+                    adapter.notifyDataSetChanged()
+                }
+
+                EDIT_STUDENT -> {
+                    val updateStudent = data.getSerializableExtra("updateStudent") as SinhVien
+                    val index = data.getIntExtra("index", -1)
+                    list[index] = updateStudent
+                    adapter.notifyDataSetChanged()
+                }
             }
         }
     }
